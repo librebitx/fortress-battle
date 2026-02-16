@@ -112,18 +112,28 @@ export function useSocket() {
     };
 
     const leaveRoom = () => {
-        if (socket.value) {
-            socket.value.emit('leaveRoom');
+        try {
+            if (socket.value) {
+                socket.value.emit('leaveRoom');
+            }
+        } catch (e) {
+            console.error("Error emitting leaveRoom:", e);
         }
+
         // Always reset state
         currentRoom.value = null;
         playerColor.value = null;
         isHost.value = false;
+
+        // Deep reset gameState
         gameState.config = null;
         gameState.board = [];
         gameState.players = {};
         gameState.playerCount = 0;
+        gameState.stats = { red: 0, blue: 0 };
+
         chatMessages.splice(0);
+        restartStatus.value = [];
     };
 
     const resetToLobby = () => {
@@ -135,6 +145,12 @@ export function useSocket() {
     const requestRestart = () => {
         if (socket.value) {
             socket.value.emit('requestRestart');
+        }
+    };
+
+    const toggleReady = () => {
+        if (socket.value) {
+            socket.value.emit('toggleReady');
         }
     };
 
@@ -160,6 +176,7 @@ export function useSocket() {
         chatMessages,
         matchHistory,
         restartStatus,
-        requestRestart
+        requestRestart,
+        toggleReady
     };
 }

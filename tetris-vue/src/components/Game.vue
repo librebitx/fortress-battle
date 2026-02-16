@@ -60,7 +60,7 @@
       </div>
 
       <!-- Surrender button -->
-      <button v-if="gameState.config?.active && playerColor" class="surrender-btn" @click="handleSurrender">🏳 认输</button>
+      <button v-if="gameState.config?.active && playerColor" class="surrender-btn" @click="handleSurrender">认输</button>
 
       <canvas ref="canvasRef" :width="canvasPixels" :height="canvasPixels"></canvas>
     </div>
@@ -82,7 +82,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useSocket } from '../composables/useSocket';
 
-const { gameState, sendAction, playerColor, controlSize, surrender, leaveRoom, resetToLobby, isHost, restartStatus, requestRestart } = useSocket();
+const { gameState, sendAction, playerColor, controlSize, surrender, leaveRoom, resetToLobby, isHost, restartStatus, requestRestart, currentRoom } = useSocket();
 const canvasRef = ref(null);
 
 const emits = defineEmits(['restart']);
@@ -171,7 +171,7 @@ const statusText = computed(() => {
     const secs = remaining % 60;
     return `⏱ ${mins}:${secs < 10 ? '0' : ''}${secs}`;
   } else {
-    return `🎯 目标 ${gameState.config.value}`;
+    return `获胜目标 ${gameState.config.value}`;
   }
 });
 
@@ -193,7 +193,8 @@ const handleLeave = () => {
 const confirmLeave = () => {
     showLeaveConfirm.value = false;
     leaveRoom();
-    // Return to lobby is handled by state change, but just in case we can reload or rely on Lobby.vue v-if
+    // Force reload to ensure a clean state and return to lobby
+    window.location.reload();
 };
 
 // Drawing

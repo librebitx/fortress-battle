@@ -385,12 +385,17 @@ io.on('connection', (socket) => {
         let deviceModel = 'Player';
         // Try to extract mobile model
         const mobileMatch = ua.match(/\b(iPhone|iPad|SM-[A-Z0-9]+|Pixel[\s0-9]*|Redmi[\s\w]*|HUAWEI[\s\w]*|Mi[\s0-9]+|OPPO[\s\w]*|vivo[\s\w]*|OnePlus[\s\w]*)\b/i);
+
         if (mobileMatch) {
             deviceModel = mobileMatch[1].trim();
         } else if (/Mobile|Android/i.test(ua)) {
             deviceModel = 'Mobile';
         } else {
-            deviceModel = 'Desktop';
+            // Desktop OS Detection
+            if (/Windows/i.test(ua)) deviceModel = 'Windows';
+            else if (/Macintosh|Mac OS/i.test(ua)) deviceModel = 'Mac';
+            else if (/Linux/i.test(ua)) deviceModel = 'Linux';
+            else deviceModel = 'PC';
         }
         const playerName = deviceModel + '_' + generateRandomLetters(4);
 
@@ -398,6 +403,7 @@ io.on('connection', (socket) => {
             id: socket.id,
             color: color,
             name: playerName,
+            isReady: false,
             piece: color !== 'spectator' ? room.spawnPiece(color, socket.id) : null
         };
 
@@ -406,8 +412,39 @@ io.on('connection', (socket) => {
         // Send recent match history
         socket.emit('matchHistory', matchHistory.slice(0, 10));
 
+        // System Chat Message: Create or Join
+        const actionDisplay = existingPlayers === 0 ? '创建' : '加入';
+        const sysMsg = {
+            name: '系统',
+            color: 'system',
+            text: `${playerName} ${actionDisplay}了房间`,
+            time: Date.now()
+        };
+        room.chatMessages.push(sysMsg);
+        if (room.chatMessages.length > 20) room.chatMessages.shift();
+        io.to(roomCode).emit('chatMessage', sysMsg);
+
         // Broadcast update to Room
         io.to(roomCode).emit('roomState', {
+            players: room.players,
+            config: room.gameConfig,
+            playerCount: Object.keys(room.players).length
+        });
+    });
+
+    socket.on('toggleReady', () => {
+        if (!socket.roomCode || !rooms[socket.roomCode]) return;
+        const room = rooms[socket.roomCode];
+        const player = room.players[socket.id];
+
+        // Only Guest (Blue) needs to ready up? Or both?
+        // Requirement: "Guest can choose ready/cancel ready, only when Guest is ready can Host start"
+        // So only non-Host players need to toggle ready.
+        if (!player || player.color === 'spectator' || player.color === 'red') return;
+
+        player.isReady = !player.isReady;
+
+        io.to(socket.roomCode).emit('roomState', {
             players: room.players,
             config: room.gameConfig,
             playerCount: Object.keys(room.players).length
@@ -443,6 +480,13 @@ io.on('connection', (socket) => {
         const activePlayers = Object.values(room.players).filter(p => p.color !== 'spectator');
         if (activePlayers.length < 2) {
             console.log('Cannot start: Not enough players');
+            return;
+        }
+
+        // Check if Guest (Blue) is ready
+        const guest = activePlayers.find(p => p.color === 'blue');
+        if (guest && !guest.isReady) {
+            console.log('Cannot start: Guest not ready');
             return;
         }
 

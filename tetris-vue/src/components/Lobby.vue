@@ -130,11 +130,14 @@
           <p v-if="gameState.playerCount < 2" class="waiting-hint">
               等待对手加入... ({{ gameState.playerCount }}/2)
           </p>
-          <button class="primary-btn" @click="handleStart" :disabled="gameState.playerCount < 2">开始游戏</button>
+          <div v-else>
+              <p v-if="!isGuestReady" class="waiting-hint">等待蓝方准备...</p>
+              <button class="primary-btn" @click="handleStart" :disabled="!isGuestReady">开始游戏</button>
+          </div>
       </div>
 
       <div v-else class="waiting-card">
-        <h3>等待房主开始...</h3>
+        <h3>{{ isGuestReady ? '已准备 - 等待房主开始' : '等待准备...' }}</h3>
         <div class="config-preview">
           <p>模式: {{ mode === 'time' ? '限时' : '积分' }}</p>
           <p>目标: {{ mode === 'time' ? timeValue + ' 分钟' : scoreValue + ' 分' }}</p>
@@ -142,6 +145,9 @@
           <p>棋盘: {{ computedBoardSize }}×{{ computedBoardSize }}</p>
           <p>玩家: {{ gameState.playerCount }}/2</p>
         </div>
+        <button class="primary-btn" :class="{ 'ready-btn': !isGuestReady, 'cancel-btn': isGuestReady }" @click="toggleReady">
+            {{ isGuestReady ? '取消准备' : '准备' }}
+        </button>
       </div>
 
 
@@ -149,7 +155,10 @@
       <!-- Quick Chat -->
       <div class="quick-chat-inline">
         <button class="chat-btn" @click="sendQuickChat('准备')">准备</button>
-        <button class="chat-btn" @click="sendQuickChat('开始咯')">开始咯</button>
+        <button class="chat-btn" @click="sendQuickChat('开始')">开始</button>
+        <button class="chat-btn" @click="sendQuickChat('干的漂亮')">干的漂亮</button>
+        <button class="chat-btn" @click="sendQuickChat('精彩的对决')">精彩的对决</button>
+        <button class="chat-btn" @click="sendQuickChat('新年快乐')">新年快乐</button>
       </div>
 
       <!-- Chat Messages -->
@@ -169,7 +178,7 @@
 import { ref, watch, computed } from 'vue';
 import { useSocket } from '../composables/useSocket';
 
-const { startGame, joinRoom, updateSettings, controlSize, currentRoom, isHost, gameState, playerName, sendQuickChat, chatMessages, matchHistory, leaveRoom } = useSocket();
+const { startGame, joinRoom, updateSettings, controlSize, currentRoom, isHost, gameState, playerName, sendQuickChat, chatMessages, matchHistory, leaveRoom, toggleReady } = useSocket();
 
 const roomInput = ref('');
 const historyExpanded = ref(false);
@@ -207,6 +216,12 @@ const mode = ref('score');
 const timeValue = ref(3);
 const scoreValue = ref(200);
 const speedValue = ref(1);
+
+const isGuestReady = computed(() => {
+    if (!gameState.players) return false;
+    const guest = Object.values(gameState.players).find(p => p.color === 'blue');
+    return guest ? guest.isReady : false;
+});
 
 // Show last 5 chat messages
 const recentChats = computed(() => chatMessages.slice(-5));
@@ -253,6 +268,7 @@ const handleStart = () => {
 const handleLeaveConfirm = () => {
     if (confirm('确定要退出房间吗？')) {
         leaveRoom();
+        window.location.reload();
     }
 };
 </script>
@@ -385,6 +401,21 @@ h1 {
 .primary-btn:disabled {
   background: #424242;
   color: #888;
+  cursor: not-allowed;
+}
+
+.ready-btn {
+  background: #10a37f;
+}
+.ready-btn:hover {
+  background: #1a7f64;
+}
+
+.cancel-btn {
+  background: #d32f2f;
+}
+.cancel-btn:hover {
+  background: #b71c1c;
 }
 
 .rules-section {
@@ -658,4 +689,9 @@ h1 {
 .h-dot.red { background: #ff6b6b; }
 .h-dot.blue { background: #4dabf7; }
 .h-vs { color: #555; margin: 0 4px; }
+
+/* Chat Text Colors */
+.h-red { color: #ff6b6b; font-weight: bold; }
+.h-blue { color: #4dabf7; font-weight: bold; }
+
 </style>
