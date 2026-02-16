@@ -5,12 +5,12 @@
     
     <!-- Room Entry Step -->
     <div v-if="!currentRoom" class="lobby-card">
-        <h3>输入房间号</h3>
+        <h3>房间号匹配</h3>
         <input 
             type="text" 
             v-model="roomInput" 
             maxlength="6" 
-            placeholder="创建或输入6位房间号"
+            placeholder="请输入6位房间号"
             class="room-input"
         >
         <button class="primary-btn" @click="handleJoin" :disabled="roomInput.length !== 6">加入房间</button>
@@ -20,7 +20,7 @@
           <h3>游戏规则</h3>
           <ul class="rules-list">
             <li>双方各控制一组方块，从四个方向落下</li>
-            <li>方块落在棋盘边缘得 <b>5分</b>，其他位置得 <b>1分</b></li>
+            <li>方块落在棋盘边缘得 5 分</li>
             <li>限时模式：时间到后分高者胜</li>
             <li>积分模式：先达目标分者胜</li>
             <li>若一组的刷新区被堵塞，则按照当前分数判输赢</li>
@@ -189,7 +189,8 @@ const formatChatTime = (iso) => {
     const d = new Date(iso);
     const h = d.getHours().toString().padStart(2, '0');
     const min = d.getMinutes().toString().padStart(2, '0');
-    return `${h}:${min}`;
+    const sec = d.getSeconds().toString().padStart(2, '0');
+    return `${h}:${min}:${sec}`;
 };
 
 const getChatColorClass = (color) => {

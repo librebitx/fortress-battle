@@ -9,14 +9,14 @@ import Lobby from './components/Lobby.vue';
 import Game from './components/Game.vue';
 import { useSocket } from './composables/useSocket';
 
-const { initSocket, gameState } = useSocket();
+const { initSocket, gameState, currentRoom } = useSocket();
 
 onMounted(() => {
   initSocket();
 });
 
 const showGame = computed(() => {
-  return gameState.config && (gameState.config.active || gameState.config.winner);
+  return currentRoom.value && gameState.config && (gameState.config.active || gameState.config.winner);
 });
 </script>
 

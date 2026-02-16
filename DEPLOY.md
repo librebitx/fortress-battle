@@ -23,12 +23,12 @@ Install essential tools:
 sudo apt install -y curl git unzip build-essential
 ```
 
-## 2. Install Node.js (v18 or later)
+## 2. Install Node.js (v20 or later)
 
 We'll use NodeSource to install a recent version of Node.js.
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 

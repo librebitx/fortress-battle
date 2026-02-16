@@ -62,7 +62,7 @@ export function useSocket() {
 
         socket.value.on('chatMessage', (msg) => {
             chatMessages.push(msg);
-            if (chatMessages.length > 20) chatMessages.shift();
+            if (chatMessages.length > 5) chatMessages.shift();
         });
 
         socket.value.on('matchHistory', (history) => {
@@ -89,6 +89,7 @@ export function useSocket() {
     const startGame = (config) => {
         if (socket.value) {
             socket.value.emit('startGame', config);
+            chatMessages.splice(0); // Clear chat on new game start
         }
     };
 
