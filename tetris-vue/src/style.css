@@ -1,0 +1,82 @@
+:root {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: #ececec;
+  background-color: #212121;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Disable copy/paste/selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  touch-action: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #212121;
+}
+
+h1 {
+  font-size: 2em;
+  line-height: 1.1;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.4em;
+  }
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid #424242;
+  padding: 0.5em 1em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background: #2f2f2f;
+  color: #ececec;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover {
+  background: #3a3a3a;
+  border-color: #555;
+}
+
+button:active {
+  background: #444;
+}
+
+button:focus-visible {
+  outline: 2px solid #10a37f;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Multiplayer Tetris</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        .mobile-only {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-only {
+                display: block;
+            }
+        }
+
+        body {
+            touch-action: none;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+
+    <body>
+        <div id="game-container">
+            <!-- Dedicated Lobby View -->
+            <div id="lobby-view" class="view-container">
+                <h1>Multiplayer Tetris</h1>
+                <div class="lobby-content">
+                    <h2>Game Setup</h2>
+                    <div class="setting-group">
+                        <label><input type="radio" name="mode" value="time" checked> Time Attack (Minutes)</label>
+                        <input type="number" id="time-input" value="3" min="1" max="10">
+                    </div>
+                    <div class="setting-group">
+                        <label><input type="radio" name="mode" value="score"> Score Attack (Target)</label>
+                        <input type="number" id="score-input" value="50" min="10" max="400">
+                    </div>
+                    <div class="setting-group mobile-only">
+                        <label>Button Size: <span id="btn-size-val">100%</span></label>
+                        <input type="range" id="btn-size-input" min="50" max="200" value="100">
+                    </div>
+                    <button id="start-btn">Start Game</button>
+                </div>
+            </div>
+
+            <!-- Game View -->
+            <div id="game-view" class="view-container" style="display: none;">
+                <!-- Game Over Overlay (still overlay on game) -->
+                <div id="game-over-overlay" style="display: none;">
+                    <h2 id="winner-text">Red Wins!</h2>
+                    <button id="restart-btn">Play Again</button>
+                </div>
+
+                <div id="info-bar">Waiting for start...</div>
+
+                <div id="territory-bar-container">
+                    <div id="territory-bar-red" style="width: 50%;"></div>
+                    <div id="territory-bar-blue" style="width: 50%;"></div>
+                </div>
+                <div id="territory-text">Red: 0% | Blue: 0%</div>
+
+                <canvas id="gameCanvas" width="1200" height="1200"></canvas>
+
+                <div id="mobile-controls">
+                    <div class="control-row">
+                        <button id="btn-rotate" class="control-btn">↻</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-left" class="control-btn">←</button>
+                        <button id="btn-down" class="control-btn">↓</button>
+                        <button id="btn-right" class="control-btn">→</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-drop" class="control-btn big-btn">DROP</button>
+                    </div>
+                </div>
+
+                <div id="controls">
+                    <span style="color: #ff5555">玩家一 (红): WASD 移动/旋转</span> |
+                    <span style="color: #5555ff">玩家二 (蓝): 方向键 移动/旋转</span> |
+                    Space: 掉落
+                </div>
+            </div>
+        </div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="client.js"></script>
+    </body>
+
+</html>
