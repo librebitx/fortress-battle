@@ -46,6 +46,10 @@ fi
 # Start Backend
 echo "Starting Backend Server..."
 cd "$BACKEND_DIR"
+if [ ! -d "node_modules" ]; then
+    echo "Installing backend dependencies..."
+    npm install
+fi
 nohup node server.js > server.log 2>&1 &
 BACKEND_PID=$!
 echo "Backend started with PID $BACKEND_PID (Logs: tetris-shared/server.log)"
@@ -53,6 +57,10 @@ echo "Backend started with PID $BACKEND_PID (Logs: tetris-shared/server.log)"
 # Start Frontend
 echo "Starting Vue Frontend..."
 cd "$FRONTEND_DIR"
+if [ ! -d "node_modules" ]; then
+    echo "Installing frontend dependencies..."
+    npm install
+fi
 nohup npm run dev -- --host > vue.log 2>&1 &
 FRONTEND_PID=$!
 echo "Frontend started with PID $FRONTEND_PID (Logs: tetris-vue/vue.log)"
