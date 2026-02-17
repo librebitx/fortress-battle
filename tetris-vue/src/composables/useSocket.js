@@ -10,6 +10,10 @@ const gameState = reactive({
     playerCount: 0,
     stats: { red: 0, blue: 0 }
 });
+const lobbyStats = reactive({
+    onlinePlayers: 0,
+    idleRooms: []
+});
 const playerId = ref(null);
 const playerColor = ref(null);
 const playerName = ref('');
@@ -72,6 +76,25 @@ export function useSocket() {
 
         socket.value.on('restartStatus', (status) => {
             restartStatus.value = status;
+        });
+
+        socket.value.on('lobbyStats', (stats) => {
+            lobbyStats.onlinePlayers = stats.onlinePlayers;
+            lobbyStats.idleRooms = stats.idleRooms;
+        });
+
+        socket.value.on('rolePromoted', (role) => {
+            playerColor.value = role;
+            if (role === 'red') isHost.value = true;
+            alert('房主已离开，您已成为新房主（红方）');
+        });
+
+        socket.value.on('opponentLeft', () => {
+            alert('蓝方已离开，等待对手加入');
+        });
+
+        socket.value.on('error', (msg) => {
+            alert(msg);
         });
     };
 
@@ -176,6 +199,7 @@ export function useSocket() {
         controlSize,
         chatMessages,
         matchHistory,
+        lobbyStats,
         restartStatus,
         requestRestart,
         toggleReady

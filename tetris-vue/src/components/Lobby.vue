@@ -1,6 +1,6 @@
 <template>
   <div class="lobby-container">
-    <h1>俄罗斯方块据点争夺战</h1>
+    <h1>俄罗斯方块据点争夺战（beta）</h1>
 
     
     <!-- Room Entry Step -->
@@ -13,7 +13,7 @@
             placeholder="请输入6位房间号"
             class="room-input"
         >
-        <button class="primary-btn" @click="handleJoin" :disabled="roomInput.length !== 6">加入房间</button>
+        <button class="primary-btn" @click="handleJoin" :disabled="roomInput.length !== 6">创建/加入房间</button>
 
         <!-- Game Rules on entry -->
         <div class="rules-section">
@@ -21,41 +21,83 @@
           <ul class="rules-list">
             <li>双方各控制一组方块，从四个方向落下</li>
             <li>方块落在棋盘边缘得 5 分</li>
-            <li>限时模式：时间到后分高者胜</li>
+            <li>限时模式：时间结束后分高者胜</li>
             <li>积分模式：先达目标分者胜</li>
             <li>若一组的刷新区被堵塞，则按照当前分数判输赢</li>
           </ul>
         </div>
 
-        <!-- Match History on entry -->
-        <div v-if="matchHistory.length" class="history-section">
-          <div class="history-header-row">
-            <h3>历史对局</h3>
-            <button v-if="matchHistory.length > 4" class="history-toggle-text" @click="historyExpanded = !historyExpanded">
-                {{ historyExpanded ? '收起' : '查看全部' }}
-            </button>
-          </div>
-          <div class="history-list">
-            <div v-for="(m, i) in visibleHistory" :key="i" class="history-card">
-               <div class="h-top">
-                   <span class="h-time">{{ formatTime(m.time) }}</span>
-                   <span class="h-mode-tag">{{ m.mode === 'time' ? '限时' : '积分' }}</span>
-                   <span class="h-winner-tag" :class="m.winner === 'Red' ? 't-red' : (m.winner === 'Blue' ? 't-blue' : 't-draw')">
-                       {{ m.winner === 'Red' ? '红胜' : (m.winner === 'Blue' ? '蓝胜' : '平局') }}
-                   </span>
-               </div>
-               <div class="h-main">
-                   <div class="h-p-row" :class="{ 'is-win': m.winner === 'Red' }">
-                       <span class="h-dot red"></span>
-                       <span class="h-name">{{ m.redPlayer }}</span>
-                       <span class="h-score-num">{{ m.redScore }}</span>
+
+        <!-- Lobby Stats -->
+        <div class="lobby-stats">
+            <div class="stat-item">
+                <span class="stat-label">在线玩家:</span>
+                <span class="stat-value">{{ lobbyStats.onlinePlayers }}</span>
+            </div>
+            <div class="stat-item rooms-item">
+                <span class="stat-label">空闲房间:</span>
+                <div v-if="lobbyStats.idleRooms.length > 0" class="room-list">
+                    <span 
+                        v-for="code in lobbyStats.idleRooms" 
+                        :key="code" 
+                        class="room-tag"
+                        @click="roomInput = code; handleJoin()"
+                    >{{ code }}</span>
+                </div>
+                <span v-else class="stat-value empty">无</span>
+            </div>
+        </div>
+        <div class="history-entry-btn-wrapper">
+          <button class="secondary-btn" @click="showHistoryModal = true">历史对局</button>
+        </div>
+
+        <!-- History Modal -->
+        <div v-if="showHistoryModal" class="modal-overlay" @click.self="showHistoryModal = false">
+          <div class="modal-content">
+            <div class="modal-header">
+                <h3>历史对局</h3>
+                <button class="close-btn" @click="showHistoryModal = false">×</button>
+            </div>
+            <div class="history-list-modal">
+                <div v-for="(m, i) in matchHistory" :key="i" class="history-card">
+                   <div class="h-top">
+                       <span class="h-time">{{ formatTime(m.time) }}</span>
+                       <span class="h-mode-tag">{{ m.mode === 'time' ? '限时对局' : '积分对局' }}</span>
+                       <span class="h-winner-tag" :class="m.winner === 'Red' ? 't-red' : (m.winner === 'Blue' ? 't-blue' : 't-draw')">
+                           {{ m.winner === 'Red' ? '红胜' : (m.winner === 'Blue' ? '蓝胜' : '平局') }}
+                       </span>
                    </div>
-                   <div class="h-p-row" :class="{ 'is-win': m.winner === 'Blue' }">
-                       <span class="h-dot blue"></span>
-                       <span class="h-name">{{ m.bluePlayer }}</span>
-                       <span class="h-score-num">{{ m.blueScore }}</span>
+                   <div class="h-main-row">
+                       <div class="h-player-side" :class="{ 'is-win': m.winner === 'Red', 'side-left': true }">
+                           <div class="h-info-group">
+                               <div class="h-dot-row">
+                                   <span class="h-dot red"></span>
+                                   <span v-if="m.surrender?.by === 'Red'" class="surrender-mini-tag">
+                                       {{ m.surrender.type === 'disconnect' ? '逃跑' : '认输' }}
+                                   </span>
+                               </div>
+                               <span class="h-name">{{ m.redPlayer }}</span>
+                           </div>
+                           <span class="h-score-num">{{ m.redScore }}</span>
+                       </div>
+                       
+                       <div class="h-vs">VS</div>
+                       
+                       <div class="h-player-side" :class="{ 'is-win': m.winner === 'Blue', 'side-right': true }">
+                           <span class="h-score-num">{{ m.blueScore }}</span>
+                           <div class="h-info-group">
+                               <div class="h-dot-row">
+                                   <span v-if="m.surrender?.by === 'Blue'" class="surrender-mini-tag surrender-left">
+                                       {{ m.surrender.type === 'disconnect' ? '逃跑' : '认输' }}
+                                   </span>
+                                   <span class="h-dot blue"></span>
+                               </div>
+                               <span class="h-name">{{ m.bluePlayer }}</span>
+                           </div>
+                       </div>
                    </div>
-               </div>
+                </div>
+                <div v-if="matchHistory.length === 0" class="empty-history">暂无记录</div>
             </div>
           </div>
         </div>
@@ -178,10 +220,10 @@
 import { ref, watch, computed } from 'vue';
 import { useSocket } from '../composables/useSocket';
 
-const { startGame, joinRoom, updateSettings, controlSize, currentRoom, isHost, gameState, playerName, sendQuickChat, chatMessages, matchHistory, leaveRoom, toggleReady } = useSocket();
+const { startGame, joinRoom, updateSettings, controlSize, currentRoom, isHost, gameState, playerName, sendQuickChat, chatMessages, matchHistory, lobbyStats, leaveRoom, toggleReady } = useSocket();
 
 const roomInput = ref('');
-const historyExpanded = ref(false);
+const showHistoryModal = ref(false);
 
 const formatTime = (iso) => {
     if (!iso) return '';
@@ -208,10 +250,7 @@ const getChatColorClass = (color) => {
     return 'h-system';
 };
 
-const visibleHistory = computed(() => {
-    if (historyExpanded.value) return matchHistory.value;
-    return matchHistory.value.slice(0, 4);
-});
+
 const mode = ref('score');
 const timeValue = ref(3);
 const scoreValue = ref(200);
@@ -440,6 +479,61 @@ h1 {
   color: #10a37f;
 }
 
+
+/* Lobby Stats */
+.lobby-stats {
+  margin-top: 16px;
+  padding: 12px;
+  background: #252525;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95em;
+  color: #b4b4b4;
+  margin-bottom: 8px;
+}
+.stat-item:last-child { margin-bottom: 0; }
+.stat-value {
+  color: #10a37f;
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 1.1em;
+}
+.stat-value.empty {
+  color: #666;
+  font-weight: normal;
+  font-size: 0.9em;
+}
+.rooms-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.room-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.room-tag {
+  background: #333;
+  color: #ececec;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  cursor: pointer;
+  border: 1px solid #444;
+  transition: all 0.2s;
+}
+.room-tag:hover {
+  background: #444;
+  border-color: #10a37f;
+  color: #10a37f;
+}
+
 /* Settings */
 .settings-section {
   display: flex;
@@ -646,11 +740,20 @@ h1 {
   flex-direction: column;
   gap: 6px;
 }
+
 .h-top {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   font-size: 0.8em;
   color: #888;
+}
+.h-time {
+  text-align: left;
+}
+.h-winner-tag {
+  text-align: right;
+  font-weight: bold;
 }
 .h-mode-tag {
   background: #444;
@@ -660,38 +763,200 @@ h1 {
 .h-winner-tag { font-weight: bold; }
 .t-red { color: #ff6b6b; }
 .t-blue { color: #4dabf7; }
-.t-draw { color: #888; }
-
-.h-main {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.surrender-mini-tag {
+    font-size: 0.75em;
+    background: #444;
+    color: #ccc;
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-left: 6px;
+    white-space: nowrap;
 }
-.h-p-row {
+
+.surrender-mini-tag.surrender-left {
+    margin-left: 0;
+    margin-right: 6px;
+}
+
+.h-dot-row {
+    display: flex;
+    align-items: center;
+}
+
+.h-main-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.95em;
-  color: #ccc;
+  padding: 8px 0;
 }
-.h-p-row.is-win {
+.h-player-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05em;
+  color: #888;
+  transition: all 0.2s;
+}
+.side-left {
+  justify-content: space-between;
+  text-align: left;
+  padding-right: 10px; /* spacing from VS */
+}
+.side-right {
+  justify-content: space-between;
+  text-align: right;
+  padding-left: 10px; /* spacing from VS */
+}
+.h-player-side.is-win {
   color: #fff;
   font-weight: 600;
+  text-shadow: 0 0 8px rgba(255,255,255,0.1);
+  transform: scale(1.02);
 }
+
+.h-info-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center horizontally relative to each other */
+    justify-content: center;
+    gap: 4px;
+}
+.side-left .h-info-group { 
+    align-items: flex-start; /* Red on left */
+    margin-right: 8px;
+}
+.side-right .h-info-group { 
+    align-items: flex-end; /* Blue on right */
+    margin-left: 8px;
+}
+
 .h-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  margin-right: 8px;
+  flex-shrink: 0; 
 }
-.h-name { flex: 1; text-align: left; }
-.h-score-num { font-family: monospace; }
-.h-dot.red { background: #ff6b6b; }
-.h-dot.blue { background: #4dabf7; }
-.h-vs { color: #555; margin: 0 4px; }
+.side-left .h-dot { margin-right: 0; }
+.side-right .h-dot { margin-left: 0; }
+
+/* .h-name { 
+    max-width: 80px; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap; 
+} */
+.h-name {
+    word-break: break-all;
+}
+.h-score-num { 
+    font-family: monospace; 
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.h-dot.red { background: #ff6b6b; box-shadow: 0 0 5px #ff6b6b; }
+.h-dot.blue { background: #4dabf7; box-shadow: 0 0 5px #4dabf7; }
+.h-vs { 
+    font-weight: 900; 
+    color: #444; 
+    font-style: italic; 
+    margin: 0 10px; 
+    font-size: 0.9em;
+}
 
 /* Chat Text Colors */
 .h-red { color: #ff6b6b; font-weight: bold; }
 .h-blue { color: #4dabf7; font-weight: bold; }
+
+.history-entry-btn-wrapper {
+  margin-top: 20px;
+  width: 100%;
+}
+.secondary-btn {
+  background: transparent;
+  border: 1px solid #424242;
+  color: #b4b4b4;
+  padding: 10px;
+  width: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+}
+.secondary-btn:hover {
+  background: #3a3a3a;
+  color: #ececec;
+  border-color: #666;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: #2f2f2f;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 12px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+  border: 1px solid #424242;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #424242;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  color: #ececec;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  color: #b4b4b4;
+  cursor: pointer;
+  line-height: 1;
+}
+.close-btn:hover {
+  color: #fff;
+}
+
+.history-list-modal {
+  padding: 12px;
+  padding-bottom: 20px;
+  overflow-y: auto;
+  /* Approx height for 5 items: 
+     Item height ~75px (header ~20 + content ~35 + padding ~20) * 5 = 375px
+  */
+  max-height: 400px; 
+  flex: 1;
+}
+
+.empty-history {
+  padding: 20px;
+  color: #666;
+  font-size: 0.9em;
+}
 
 </style>

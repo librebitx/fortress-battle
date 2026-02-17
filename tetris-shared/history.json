@@ -1,0 +1,33 @@
+[
+  {
+    "time": "2026-02-17T05:32:27.934Z",
+    "room": "111111",
+    "mode": "score",
+    "value": 200,
+    "winner": "Red",
+    "redPlayer": "Linux_WAQP",
+    "bluePlayer": "Linux_WQTE",
+    "redScore": 30,
+    "blueScore": 5,
+    "surrender": {
+      "surrendered": true,
+      "by": "Blue",
+      "type": "disconnect"
+    }
+  },
+  {
+    "time": "2026-02-17T05:17:22.988Z",
+    "room": "111111",
+    "mode": "score",
+    "value": 200,
+    "winner": "Blue",
+    "redPlayer": "Linux_CVGT",
+    "bluePlayer": "Linux_NIKU",
+    "redScore": 0,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red"
+    }
+  }
+]

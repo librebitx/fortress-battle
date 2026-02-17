@@ -27,16 +27,48 @@ const SHAPES = [
     [[1, 1, 0], [0, 1, 1]]  // Z (red)
 ];
 
+const fs = require('fs');
+const path = require('path');
+const HISTORY_FILE = path.join(__dirname, 'history.json');
+
 // Room Management
 const rooms = {}; // roomCode -> Room Instance
-const matchHistory = []; // Global recent match records (max 50)
+let matchHistory = []; // Global recent match records (max 50)
 const MAX_HISTORY = 50;
+
+// Load history on start
+try {
+    if (fs.existsSync(HISTORY_FILE)) {
+        const data = fs.readFileSync(HISTORY_FILE, 'utf8');
+        matchHistory = JSON.parse(data);
+        console.log(`Loaded ${matchHistory.length} history records.`);
+    }
+} catch (e) {
+    console.error('Failed to load history:', e);
+    matchHistory = [];
+}
+
+function saveHistoryToFile() {
+    try {
+        fs.writeFileSync(HISTORY_FILE, JSON.stringify(matchHistory, null, 2));
+    } catch (e) {
+        console.error('Failed to save history:', e);
+    }
+}
 
 function generateRandomLetters(n) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     let result = '';
     for (let i = 0; i < n; i++) result += chars[Math.floor(Math.random() * chars.length)];
     return result;
+}
+
+function broadcastLobbyStats() {
+    const clients = io.engine.clientsCount;
+    const idleRooms = Object.values(rooms)
+        .filter(r => Object.keys(r.players).length < 2)
+        .map(r => r.code);
+    io.emit('lobbyStats', { onlinePlayers: clients, idleRooms });
 }
 
 class Room {
@@ -323,7 +355,7 @@ class Room {
         this.startGameLoop();
     }
 
-    saveMatchRecord(stats) {
+    saveMatchRecord(stats, surrenderInfo = null) {
         const players = Object.values(this.players).filter(p => p.color !== 'spectator');
         const redPlayer = players.find(p => p.color === 'red');
         const bluePlayer = players.find(p => p.color === 'blue');
@@ -336,12 +368,16 @@ class Room {
             redPlayer: redPlayer?.name || '???',
             bluePlayer: bluePlayer?.name || '???',
             redScore: stats.redScore,
-            blueScore: stats.blueScore
+            blueScore: stats.blueScore,
+            surrender: surrenderInfo // { surrendered: true, by: 'Blue' }
         };
         matchHistory.unshift(record);
         if (matchHistory.length > MAX_HISTORY) matchHistory.pop();
-        // Broadcast updated history to room
-        io.to(this.code).emit('matchHistory', matchHistory.slice(0, 10));
+
+        saveHistoryToFile();
+
+        // Broadcast updated history to everyone (Lobby + Rooms)
+        io.emit('matchHistory', matchHistory.slice(0, 10));
     }
 }
 
@@ -350,9 +386,34 @@ io.on('connection', (socket) => {
 
     // Initial event to confirm connection
     socket.emit('connected');
+    socket.emit('matchHistory', matchHistory.slice(0, 10));
+    broadcastLobbyStats();
 
     socket.on('joinRoom', (roomCode) => {
         if (!roomCode || roomCode.length !== 6) {
+            return;
+        }
+
+        // Limit room capacity to 2 (Host + Guest)
+        if (rooms[roomCode]) {
+            // Lazy Cleanup/Pruning of broken sockets
+            const room = rooms[roomCode];
+            Object.keys(room.players).forEach(pid => {
+                if (!io.sockets.sockets.get(pid)) {
+                    console.log(`Pruning stale player ${pid} from room ${roomCode}`);
+                    delete room.players[pid];
+                }
+            });
+
+            // If empty after pruning, delete room to ensure fresh start logic works
+            if (Object.keys(room.players).length === 0) {
+                delete rooms[roomCode];
+            }
+        }
+
+        if (rooms[roomCode] && Object.keys(rooms[roomCode].players).length >= 2) {
+            console.log(`Rejecting join for ${roomCode}: Room full. Players:`, Object.keys(rooms[roomCode].players));
+            socket.emit('error', '房间人数已满 (2/2)');
             return;
         }
 
@@ -430,6 +491,7 @@ io.on('connection', (socket) => {
             config: room.gameConfig,
             playerCount: Object.keys(room.players).length
         });
+        broadcastLobbyStats();
     });
 
     socket.on('toggleReady', () => {
@@ -547,7 +609,11 @@ io.on('connection', (socket) => {
         room.gameConfig.active = false;
         room.gameConfig.winner = player.color === 'red' ? 'Blue' : 'Red';
         const stats = room.calculateStats();
-        room.saveMatchRecord(stats);
+
+        // Record surrender info
+        const surrenderInfo = { surrendered: true, by: player.color === 'red' ? 'Red' : 'Blue' };
+
+        room.saveMatchRecord(stats, surrenderInfo);
         io.to(socket.roomCode).emit('state', { board: room.board, players: room.players, stats, config: room.gameConfig });
     });
 
@@ -646,12 +712,76 @@ io.on('connection', (socket) => {
         if (socket.roomCode && rooms[socket.roomCode]) {
             const room = rooms[socket.roomCode];
             const oldRoom = socket.roomCode;
+            const p = room.players[socket.id];
 
-            // Clean up restart requests
-            if (room.players[socket.id]) {
-                const p = room.players[socket.id];
+            if (p) {
+                // Clean up restart requests
                 room.restartRequests.delete(p.color);
                 io.to(oldRoom).emit('restartStatus', Array.from(room.restartRequests));
+
+                if (p.color === 'red') {
+                    // Host left
+                    const blueId = Object.keys(room.players).find(id => room.players[id].color === 'blue');
+
+                    if (room.gameConfig.active && blueId) {
+                        // Game was in progress, treat as surrender/loss
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = 'Blue'; // Red left, Blue wins
+                        const stats = room.calculateStats();
+                        const surrenderInfo = { surrendered: true, by: 'Red', type: 'disconnect' };
+                        room.saveMatchRecord(stats, surrenderInfo);
+
+                        // Notify Blue (state update before reset)
+                        io.to(blueId).emit('state', { board: room.board, players: room.players, stats, config: room.gameConfig });
+                    }
+
+                    if (blueId) {
+                        const newHost = room.players[blueId];
+                        newHost.color = 'red';
+                        newHost.isReady = false; // Host doesn't need ready, but reset state
+                        // Reset game state to lobby
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = null;
+                        room.gameConfig.startTime = 0;
+                        room.restartRequests.clear();
+
+                        // Notify
+                        const promoMsg = { name: '系统', color: 'system', text: `房主已离开，您已成为新房主（红方）`, time: Date.now() };
+                        room.chatMessages.push(promoMsg);
+                        io.to(blueId).emit('chatMessage', promoMsg);
+                        // Send special event for alert
+                        io.to(blueId).emit('rolePromoted', 'red');
+                    }
+                } else if (p.color === 'blue') {
+                    // Guest left, check for Host (Red)
+                    const redId = Object.keys(room.players).find(id => room.players[id].color === 'red');
+
+                    if (room.gameConfig.active && redId) {
+                        // Game was in progress, treat as surrender/loss
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = 'Red'; // Blue left, Red wins
+                        const stats = room.calculateStats();
+                        const surrenderInfo = { surrendered: true, by: 'Blue', type: 'disconnect' };
+                        room.saveMatchRecord(stats, surrenderInfo);
+
+                        // Notify Red (state update before reset)
+                        io.to(redId).emit('state', { board: room.board, players: room.players, stats, config: room.gameConfig });
+                    }
+
+                    if (redId) {
+                        // Reset game state to lobby
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = null;
+                        room.gameConfig.startTime = 0;
+                        room.restartRequests.clear();
+
+                        const alertMsg = { name: '系统', color: 'system', text: `蓝方已离开，等待对手加入`, time: Date.now() };
+                        room.chatMessages.push(alertMsg);
+                        io.to(redId).emit('chatMessage', alertMsg);
+                        // Send special event for alert 
+                        io.to(redId).emit('opponentLeft');
+                    }
+                }
 
                 // System Chat Message
                 const sysMsg = { name: '系统', color: 'system', text: `${p.name} 离开了房间`, time: Date.now() };
@@ -674,18 +804,83 @@ io.on('connection', (socket) => {
                     playerCount: Object.keys(room.players).length
                 });
             }
+            broadcastLobbyStats();
         }
     });
 
     socket.on('disconnect', () => {
         if (socket.roomCode && rooms[socket.roomCode]) {
             const room = rooms[socket.roomCode];
+            const p = room.players[socket.id];
 
-            // Clean up restart requests
-            if (room.players[socket.id]) {
-                const p = room.players[socket.id];
+            if (p) {
+                // Clean up restart requests
                 room.restartRequests.delete(p.color);
                 io.to(socket.roomCode).emit('restartStatus', Array.from(room.restartRequests));
+
+                if (p.color === 'red') {
+                    // Host left, check for new host (Blue -> Red)
+                    const blueId = Object.keys(room.players).find(id => room.players[id].color === 'blue');
+
+                    if (room.gameConfig.active && blueId) {
+                        // Game was in progress, treat as surrender/loss
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = 'Blue'; // Red left, Blue wins
+                        const stats = room.calculateStats();
+                        const surrenderInfo = { surrendered: true, by: 'Red', type: 'disconnect' };
+                        room.saveMatchRecord(stats, surrenderInfo);
+
+                        // Notify Blue (state update before reset)
+                        io.to(blueId).emit('state', { board: room.board, players: room.players, stats, config: room.gameConfig });
+                    }
+
+                    if (blueId) {
+                        const newHost = room.players[blueId];
+                        newHost.color = 'red';
+                        newHost.isReady = false;
+                        // Reset game state to lobby
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = null;
+                        room.gameConfig.startTime = 0;
+                        room.restartRequests.clear();
+
+                        // Notify
+                        const promoMsg = { name: '系统', color: 'system', text: `房主已离开，您已成为新房主（红方）`, time: Date.now() };
+                        room.chatMessages.push(promoMsg);
+                        io.to(blueId).emit('chatMessage', promoMsg);
+                        // Send special event for alert
+                        io.to(blueId).emit('rolePromoted', 'red');
+                    }
+                } else if (p.color === 'blue') {
+                    // Guest left, check for Host (Red)
+                    const redId = Object.keys(room.players).find(id => room.players[id].color === 'red');
+
+                    if (room.gameConfig.active && redId) {
+                        // Game was in progress, treat as surrender/loss
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = 'Red'; // Blue left, Red wins
+                        const stats = room.calculateStats();
+                        const surrenderInfo = { surrendered: true, by: 'Blue', type: 'disconnect' };
+                        room.saveMatchRecord(stats, surrenderInfo);
+
+                        // Notify Red (state update before reset)
+                        io.to(redId).emit('state', { board: room.board, players: room.players, stats, config: room.gameConfig });
+                    }
+
+                    if (redId) {
+                        // Reset game state to lobby
+                        room.gameConfig.active = false;
+                        room.gameConfig.winner = null;
+                        room.gameConfig.startTime = 0;
+                        room.restartRequests.clear();
+
+                        const alertMsg = { name: '系统', color: 'system', text: `蓝方已离开，等待对手加入`, time: Date.now() };
+                        room.chatMessages.push(alertMsg);
+                        io.to(redId).emit('chatMessage', alertMsg);
+                        // Send special event for alert 
+                        io.to(redId).emit('opponentLeft');
+                    }
+                }
 
                 // System Chat Message
                 const sysMsg = { name: '系统', color: 'system', text: `${p.name} 离开了房间`, time: Date.now() };
@@ -703,7 +898,9 @@ io.on('connection', (socket) => {
                 // Notify others
                 io.to(socket.roomCode).emit('roomState', { players: room.players, config: room.gameConfig });
             }
+            broadcastLobbyStats();
         }
+        broadcastLobbyStats();
     });
 });
 
