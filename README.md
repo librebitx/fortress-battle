@@ -48,11 +48,14 @@
 └── TROUBLESHOOTING.md      # 故障排查手册
 ```
 
-## 快速部署
+## 快速部署（适用于 Debian）
 
 1. **更新系统/安装依赖**：
    
    ```bash
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install -y curl git unzip build-essential
+   
    git clone https://github.com/librebitx/tetris.git
    cd tetris/
    
@@ -60,7 +63,7 @@
    
    # 记得修改 /etc/nginx/sites-available/tetris 中的 server_name
    ```
-
+   
 2. **启动游戏**：
    回到根目录运行启动脚本：
    ```bash

@@ -1,6 +1,4 @@
 #!bin/bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl git unzip build-essential
 
 sudo rm -rf /etc/apt/sources.list.d/nodesource.list
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
