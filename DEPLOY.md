@@ -2,7 +2,7 @@
 
 本指南介绍如何在运行 **Debian 12** 的服务器上部署多人俄罗斯方块游戏。
 
-## 📋 架构概览
+## 架构概览
 
 - **前端**: Vue 3 + Vite (构建为静态文件，由 Nginx 托管)
 - **后端**: Node.js + Socket.io (由 PM2 管理进程)
@@ -43,7 +43,7 @@ sudo chown -R $USER:$USER /opt/tetris
 
 ### 后端安装与启动
 ```bash
-cd /opt/tetris/tetris-shared
+cd ~/tetris/tetris-shared
 
 # 安装生产依赖
 npm ci --omit=dev
@@ -58,7 +58,7 @@ pm2 startup
 
 ### 前端构建
 ```bash
-cd /opt/tetris/tetris-vue
+cd ~/tetris/tetris-vue
 
 # 安装依赖
 npm ci

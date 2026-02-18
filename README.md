@@ -2,7 +2,7 @@
 
 这是一个基于 Web 的实时多人对战俄罗斯方块游戏。支持创建房间、实时对战、聊天互动、历史记录查看等功能。
 
-## ✨ 主要功能
+## 主要功能
 
 - **实时对战**：支持双人在线对战，红蓝方对抗。
 - **房间系统**：
@@ -25,13 +25,13 @@
   - 针对手机优化的触摸控制布局。
   - 自动检测设备类型。
 
-## 🛠️ 技术栈
+## 技术栈
 
 - **前端**：Vue 3, Vite, Socket.io Client
 - **后端**：Node.js, Socket.io
 - **部署**：Nginx (反向代理), PM2 (进程管理)
 
-## 📂 项目结构
+## 项目结构
 
 ```
 .
@@ -49,17 +49,17 @@
 └── TROUBLESHOOTING.md      # 故障排查手册
 ```
 
-## 🚀 快速开始 (本地开发)
+## 快速部署
 
-1. **安装依赖**：
+1. **更新系统/安装依赖**：
+   
    ```bash
-   # 后端
-   cd tetris-shared
-   npm install
-
-   # 前端
-   cd ../tetris-vue
-   npm install
+   git clone https://github.com/librebitx/tetris.git
+   cd tetris/
+   
+   ./init.sh
+   
+   # 记得修改 /etc/nginx/sites-available/tetris 中 server_name
    ```
 
 2. **启动游戏**：
@@ -77,12 +77,12 @@
    ./stop_game.sh
    ```
 
-## 📖 文档
+## 文档
 
 - **[部署指南 (DEPLOY.md)](DEPLOY.md)**：如何在 Linux 服务器上部署生产环境。
 - **[故障排除 (TROUBLESHOOTING.md)](TROUBLESHOOTING.md)**：常见问题解决方案和日志查看方法。
 
-## 📝 最近更新
+## 最近更新
 
 - 修复了历史记录在"Top Out"（方块溢出）时不保存的问题。
 - 优化了聊天室功能（支持滚动、历史同步）。
