@@ -4,8 +4,20 @@
     <div class="board-zone">
       <div v-if="gameState.config?.winner && !isReviewing" class="overlay">
         <div class="overlay-card">
-          <!-- History Style Score Card -->
-          <div class="result-card">
+          <!-- Single Player Result -->
+          <div v-if="isSolo" class="result-card solo-result">
+            <div class="h-top">
+              <span class="h-mode-tag">单人限时</span>
+              <span class="h-winner-tag t-red">挑战结束</span>
+            </div>
+            <div class="solo-score-row">
+              <span class="solo-label">最终得分</span>
+              <span class="solo-value">{{ gameState.stats.redScore }}</span>
+            </div>
+          </div>
+
+          <!-- History Style Score Card (Multiplayer) -->
+          <div v-else class="result-card">
               <div class="h-top">
                   <span class="h-mode-tag">{{ gameState.config.mode === 'time' ? '限时' : '积分' }}</span>
                   <span class="h-winner-tag" :class="gameState.config.winner === 'Red' ? 't-red' : (gameState.config.winner === 'Blue' ? 't-blue' : 't-draw')">
@@ -46,7 +58,7 @@
           </div>
           
           <!-- Restart Status -->
-          <div class="restart-status-row">
+          <div v-if="!isSolo" class="restart-status-row">
              <div class="status-pill red" :class="{ ready: isRedReady }">
                  <span class="dot"></span> {{ isRedReady ? '红方就绪' : '红方等待' }}
              </div>
@@ -58,12 +70,17 @@
           
           <!-- Unified Restart Button for both Host and Guest -->
           <div class="restart-actions">
-            <!-- Host View -->
-            <button v-if="isHost" class="restart-btn" @click="handleRestartClick" :disabled="amIReady" :class="{ disabled: amIReady, 'pulse-green': isBlueReady && !amIReady }">
+            <!-- Solo View -->
+            <button v-if="isSolo" class="restart-btn" @click="handleRestartClick">
+                再来一局
+            </button>
+
+            <!-- Host View (Multiplayer) -->
+            <button v-else-if="isHost" class="restart-btn" @click="handleRestartClick" :disabled="amIReady" :class="{ disabled: amIReady, 'pulse-green': isBlueReady && !amIReady }">
                 {{ amIReady ? '已就绪 - 等待蓝方' : (isBlueReady ? '蓝方已就绪 - 再来一局' : '再来一局') }}
             </button>
             
-            <!-- Guest View -->
+            <!-- Guest View (Multiplayer) -->
             <button v-else class="restart-btn" @click="handleRestartClick" :disabled="amIReady" :class="{ disabled: amIReady, 'pulse-green': isRedReady && !amIReady }">
                  {{ amIReady ? '已就绪 - 等待红方' : (isRedReady ? '红方已就绪 - 再来一局' : '再来一局') }}
             </button>
@@ -94,14 +111,16 @@
 
       <div class="hud">
         <div class="status-text">{{ statusText }}</div>
-        <div class="territory-bar-container">
+        <div class="territory-bar-container" v-if="!isSolo">
           <div class="bar red" :style="{ width: redPct + '%' }"></div>
           <div class="bar blue" :style="{ width: bluePct + '%' }"></div>
         </div>
         <div class="territory-text">
-          <span class="score-red">红方 {{ gameState.stats.redScore || 0 }}</span>
-          <span class="score-divider">·</span>
-          <span class="score-blue">蓝方 {{ gameState.stats.blueScore || 0 }}</span>
+          <span class="score-red">{{ isSolo ? '当前得分' : '红方' }} {{ gameState.stats.redScore || 0 }}</span>
+          <template v-if="!isSolo">
+            <span class="score-divider">·</span>
+            <span class="score-blue">蓝方 {{ gameState.stats.blueScore || 0 }}</span>
+          </template>
         </div>
       </div>
 
@@ -111,7 +130,9 @@
       </button>
 
       <!-- Surrender button -->
-      <button v-if="gameState.config?.active && playerColor" class="surrender-btn" @click="handleSurrender">认输</button>
+      <button v-if="gameState.config?.active && playerColor" class="surrender-btn" @click="handleSurrender">
+        {{ isSolo ? '结束对局' : '认输' }}
+      </button>
 
       <canvas ref="canvasRef" :width="canvasPixels" :height="canvasPixels"></canvas>
     </div>
@@ -141,6 +162,8 @@ const emits = defineEmits(['restart']);
 const isRedReady = computed(() => restartStatus.value && restartStatus.value.includes('red'));
 const isBlueReady = computed(() => restartStatus.value && restartStatus.value.includes('blue'));
 const amIReady = computed(() => restartStatus.value && restartStatus.value.includes(playerColor.value));
+
+const isSolo = computed(() => currentRoom.value && currentRoom.value.startsWith('SOLO'));
 
 const handleRestartClick = () => {
     if (!amIReady.value) requestRestart();
@@ -243,8 +266,6 @@ const handleLeave = () => {
 const confirmLeave = () => {
     showLeaveConfirm.value = false;
     leaveRoom();
-    // Force reload to ensure a clean state and return to lobby
-    window.location.reload();
 };
 
 const isReviewing = ref(false);
@@ -424,32 +445,50 @@ const draw = () => {
                   isBlue = false;
               }
 
-              // Apply Styles
-              ctx.font = 'bold 30px monospace'; // Changed to monospace
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              
-              const centerX = (rect.x + rect.w / 2) * BLOCK_SIZE;
-              const centerY = (rect.y + rect.h / 2) * BLOCK_SIZE;
+              if (isRed || isBlue) {
+                  // Captured - Draw White Stroke
+                  ctx.strokeStyle = '#ffffff';
+                  ctx.lineWidth = 3;
+                  ctx.strokeRect(
+                      rect.x * BLOCK_SIZE + 1, 
+                      rect.y * BLOCK_SIZE + 1, 
+                      rect.w * BLOCK_SIZE - 2, 
+                      rect.h * BLOCK_SIZE - 2
+                  );
 
-              if (isRed) {
-                  // Red Owned
-                  ctx.fillStyle = '#ff6b6b'; 
-                  ctx.lineWidth = 4;
-                  ctx.strokeStyle = '#ffffff';
-                  ctx.strokeText('+' + score, centerX, centerY);
-                  ctx.fillText('+' + score, centerX, centerY);
-              } else if (isBlue) {
-                  // Blue Owned
-                  ctx.fillStyle = '#4dabf7';
-                  ctx.lineWidth = 4;
-                  ctx.strokeStyle = '#ffffff';
-                  ctx.strokeText('+' + score, centerX, centerY);
-                  ctx.fillText('+' + score, centerX, centerY);
+                  // Apply Styles to score text
+                  ctx.font = 'bold 30px monospace';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  
+                  const centerX = (rect.x + rect.w / 2) * BLOCK_SIZE;
+                  const centerY = (rect.y + rect.h / 2) * BLOCK_SIZE;
+
+                  if (isRed) {
+                      // Red Owned
+                      ctx.fillStyle = '#ff6b6b'; 
+                      ctx.lineWidth = 4;
+                      ctx.strokeStyle = '#ffffff';
+                      ctx.strokeText('+' + score, centerX, centerY);
+                      ctx.fillText('+' + score, centerX, centerY);
+                  } else {
+                      // Blue Owned
+                      ctx.fillStyle = '#4dabf7';
+                      ctx.lineWidth = 4;
+                      ctx.strokeStyle = '#ffffff';
+                      ctx.strokeText('+' + score, centerX, centerY);
+                      ctx.fillText('+' + score, centerX, centerY);
+                  }
               } else {
-                  // Default (No Outline)
+                  // Not captured - Default styling
+                  ctx.font = 'bold 30px monospace';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  
+                  const centerX = (rect.x + rect.w / 2) * BLOCK_SIZE;
+                  const centerY = (rect.y + rect.h / 2) * BLOCK_SIZE;
+
                   ctx.fillStyle = '#9ee79eff'; // Bright Green
-                  // No stroke for default
                   ctx.fillText('+' + score, centerX, centerY);
               }
           }
@@ -787,6 +826,32 @@ canvas {
   justify-content: center;
   gap: 12px;
   margin: 16px 0;
+}
+
+/* Solo Result Styles */
+.solo-result {
+  min-width: 280px;
+}
+.solo-score-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  padding: 16px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+}
+.solo-label {
+  font-size: 1rem;
+  color: #888;
+  margin-bottom: 8px;
+}
+.solo-value {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #4ade80;
+  text-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+  font-family: 'Inter', monospace;
 }
 .status-pill {
   background: #333;

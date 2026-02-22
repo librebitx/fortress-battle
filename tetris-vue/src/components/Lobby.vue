@@ -5,7 +5,10 @@
     
     <!-- Room Entry Step -->
     <div v-if="!currentRoom" class="lobby-card">
-        <h3>房间号匹配</h3>
+        <div class="lobby-header">
+          <button class="back-btn" @click="$emit('back')">← 返回</button>
+          <h3 class="room-title">房间号匹配</h3>
+        </div>
         <input 
             type="text" 
             v-model="roomInput" 
@@ -220,6 +223,8 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useSocket } from '../composables/useSocket';
+
+defineEmits(['back']);
 
 const { startGame, joinRoom, updateSettings, controlSize, currentRoom, isHost, gameState, playerName, sendQuickChat, chatMessages, matchHistory, lobbyStats, leaveRoom, toggleReady } = useSocket();
 

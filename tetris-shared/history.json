@@ -1,5 +1,181 @@
 [
   {
+    "time": "2026-02-19T22:21:28.509Z",
+    "room": "SOLOOI",
+    "mode": "time",
+    "value": 300,
+    "winner": "Blue",
+    "redPlayer": "Mobile_FJRZ",
+    "bluePlayer": "???",
+    "redScore": 30,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T22:18:57.562Z",
+    "room": "SOLOKQ",
+    "mode": "time",
+    "value": 300,
+    "winner": "Blue",
+    "redPlayer": "Linux_UBKE",
+    "bluePlayer": "???",
+    "redScore": 0,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T22:05:08.563Z",
+    "room": "SOLOXI",
+    "mode": "time",
+    "value": 300,
+    "winner": "Blue",
+    "redPlayer": "Linux_CADB",
+    "bluePlayer": "???",
+    "redScore": 0,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T22:01:22.178Z",
+    "room": "SOLODR",
+    "mode": "time",
+    "value": 300,
+    "winner": "Blue",
+    "redPlayer": "Linux_WKJW",
+    "bluePlayer": "???",
+    "redScore": 0,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T22:00:43.567Z",
+    "room": "SOLOIW",
+    "mode": "time",
+    "value": 300,
+    "winner": "Blue",
+    "redPlayer": "Linux_AODZ",
+    "bluePlayer": "???",
+    "redScore": 0,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T21:58:31.261Z",
+    "room": "SOLOBB",
+    "mode": "time",
+    "value": 300,
+    "winner": "Blue",
+    "redPlayer": "Linux_JDKD",
+    "bluePlayer": "???",
+    "redScore": 0,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T21:56:07.831Z",
+    "room": "SOLOLL",
+    "mode": "time",
+    "value": 300,
+    "winner": "Red",
+    "redPlayer": "Linux_BMAA",
+    "bluePlayer": "???",
+    "redScore": 25,
+    "blueScore": 0,
+    "surrender": null
+  },
+  {
+    "time": "2026-02-19T21:52:44.384Z",
+    "room": "SOLONK",
+    "mode": "time",
+    "value": 300,
+    "winner": "Red",
+    "redPlayer": "Linux_MCKG",
+    "bluePlayer": "???",
+    "redScore": 40,
+    "blueScore": 0,
+    "surrender": null
+  },
+  {
+    "time": "2026-02-19T21:40:17.753Z",
+    "room": "SOLOTA",
+    "mode": "time",
+    "value": 300,
+    "winner": "Red",
+    "redPlayer": "Linux_LDME",
+    "bluePlayer": "???",
+    "redScore": 405,
+    "blueScore": 0,
+    "surrender": null
+  },
+  {
+    "time": "2026-02-19T21:34:11.537Z",
+    "room": "SOLOMX",
+    "mode": "time",
+    "value": 300,
+    "winner": "Blue",
+    "redPlayer": "Linux_ESMC",
+    "bluePlayer": "???",
+    "redScore": 20,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T20:42:25.463Z",
+    "room": "111111",
+    "mode": "score",
+    "value": 200,
+    "winner": "Blue",
+    "redPlayer": "Mobile_EGOB",
+    "bluePlayer": "Linux_HFQG",
+    "redScore": 0,
+    "blueScore": 0,
+    "surrender": {
+      "surrendered": true,
+      "by": "Red",
+      "type": "surrender"
+    }
+  },
+  {
+    "time": "2026-02-19T20:37:20.981Z",
+    "room": "111111",
+    "mode": "score",
+    "value": 200,
+    "winner": "Blue",
+    "redPlayer": "Linux_CHZM",
+    "bluePlayer": "Mobile_EOQF",
+    "redScore": 15,
+    "blueScore": 130,
+    "surrender": null
+  },
+  {
     "time": "2026-02-18T04:26:24.331Z",
     "room": "111111",
     "mode": "score",

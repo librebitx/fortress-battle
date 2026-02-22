@@ -169,8 +169,9 @@ function broadcastLobbyStats() {
 }
 
 class Room {
-    constructor(code) {
+    constructor(code, isSinglePlayer = false) {
         this.code = code;
+        this.isSinglePlayer = isSinglePlayer;
         this.rows = DEFAULT_SIZE;
         this.cols = DEFAULT_SIZE;
         this.board = Array(this.rows).fill().map(() => Array(this.cols).fill(0));
@@ -603,6 +604,13 @@ io.on('connection', (socket) => {
     socket.emit('matchHistory', matchHistory.slice(0, 10));
     broadcastLobbyStats();
 
+    socket.on('joinSinglePlayer', () => {
+        const roomCode = 'SOLO' + generateRandomLetters(2);
+        socket.isJoiningSinglePlayer = true;
+        // The joinRoom logic will handle the rest
+        socket.emit('singlePlayerRoomCreated', roomCode);
+    });
+
     socket.on('joinRoom', (roomCode) => {
         if (!roomCode || roomCode.length !== 6) {
             return;
@@ -642,7 +650,7 @@ io.on('connection', (socket) => {
         socket.roomCode = roomCode;
 
         if (!rooms[roomCode]) {
-            rooms[roomCode] = new Room(roomCode);
+            rooms[roomCode] = new Room(roomCode, socket.isJoiningSinglePlayer || false);
         }
 
         const room = rooms[roomCode];
@@ -757,9 +765,9 @@ io.on('connection', (socket) => {
         // Only Host (Red) can start
         if (room.players[socket.id]?.color !== 'red') return;
 
-        // Require at least 2 players (Host + Guest)
+        // Require at least 2 players (Host + Guest) unless it's single player
         const activePlayers = Object.values(room.players).filter(p => p.color !== 'spectator');
-        if (activePlayers.length < 2) {
+        if (!room.isSinglePlayer && activePlayers.length < 2) {
             console.log('Cannot start: Not enough players');
             return;
         }

@@ -22,6 +22,19 @@ const chatMessages = reactive([]);
 const matchHistory = reactive([]);
 const restartStatus = ref([]);
 
+const toastMessage = ref('');
+let toastTimeout = null;
+
+const showToast = (msg, duration = 3000) => {
+    toastMessage.value = msg;
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+    }
+    toastTimeout = setTimeout(() => {
+        toastMessage.value = '';
+    }, duration);
+};
+
 const isHost = ref(false);
 const currentRoom = ref(null);
 
@@ -42,6 +55,22 @@ export function useSocket() {
         socket.value.on('disconnect', () => {
             isConnected.value = false;
             console.log('Disconnected');
+        });
+
+        socket.value.on('roomUpdate', (room) => {
+            console.log('Room updated:', room);
+            // Check if player was promoted to host
+            if (room.host === socket.value.id && !isHost.value) {
+                isHost.value = true;
+                playerColor.value = 'red'; // Host is always red
+                showToast('房主已离开，您已成为新房主（红方）');
+            }
+            // Check if an opponent left
+            if (Object.keys(room.players).length < 2 && gameState.playerCount === 2) {
+                showToast('蓝方已离开，等待对手加入');
+            }
+            gameState.players = room.players;
+            gameState.playerCount = Object.keys(room.players).length;
         });
 
         socket.value.on('init', (data) => {
@@ -84,24 +113,25 @@ export function useSocket() {
             lobbyStats.idleRooms = stats.idleRooms;
         });
 
-        socket.value.on('rolePromoted', (role) => {
-            playerColor.value = role;
-            if (role === 'red') isHost.value = true;
-            alert('房主已离开，您已成为新房主（红方）');
-        });
-
-        socket.value.on('opponentLeft', () => {
-            alert('蓝方已离开，等待对手加入');
+        socket.value.on('singlePlayerRoomCreated', (code) => {
+            socket.value.emit('joinRoom', code);
         });
 
         socket.value.on('error', (msg) => {
-            alert(msg);
+            console.error('Socket error:', msg);
+            showToast(msg);
         });
     };
 
     const joinRoom = (code) => {
         if (socket.value && code.length === 6) {
             socket.value.emit('joinRoom', code);
+        }
+    };
+
+    const joinSinglePlayer = () => {
+        if (socket.value) {
+            socket.value.emit('joinSinglePlayer');
         }
     };
 
@@ -207,6 +237,9 @@ export function useSocket() {
         lobbyStats,
         restartStatus,
         requestRestart,
-        toggleReady
+        toggleReady,
+        joinSinglePlayer,
+        toastMessage,
+        showToast
     };
 }
